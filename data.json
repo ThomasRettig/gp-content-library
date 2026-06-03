@@ -1,0 +1,35 @@
+[
+  {
+    "label": "Gaza schools",
+    "title": "At These Gaza Schools, ‘Peace Building’ Is Part of the Curriculum",
+    "location": "Gaza",
+    "themes": "Education, Humanitarian Aid, Conflict",
+    "date": "18 February 2026",
+    "lat": 31.503868835626292,
+    "lng": 34.46649327903888,
+    "file": "content/academies-of-hope.md",
+    "displayLabel": "Gaza schools"
+  },
+  {
+    "label": "Policing of Uyghurs",
+    "title": "Digital Policing of Uyghurs in China",
+    "location": "Xinjiang Province, China",
+    "themes": "Governance, Science and Technology, Social Issues",
+    "date": "2019",
+    "lat": 41.8,
+    "lng": 84.95,
+    "file": "content/digital-policing-of-uyghurs-in-china.md",
+    "displayLabel": "Policing of Uyghurs"
+  },
+  {
+    "label": "US-Iran conflict",
+    "title": "US launches new strikes on Iran, targeting missile sites and boats",
+    "location": "Bandar Abbas, Iran",
+    "themes": "Conflict, Geopolitics, Energy Security, International Relations",
+    "date": "26 May 2026",
+    "lat": 27.1833,
+    "lng": 56.2667,
+    "file": "content/us-iran-strikes.md",
+    "displayLabel": "US-Iran conflict"
+  }
+]

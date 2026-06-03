@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GP Content Library</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-[#0a0a0a] text-zinc-300 overflow-hidden font-sans">
+
+    <header class="absolute top-0 left-0 p-8 z-10 pointer-events-none">
+        <h1 class="text-xs tracking-[0.3em] uppercase text-zinc-500">GP Content Library</h1>
+        <p class="text-sm text-zinc-400 mt-2">Geopolitical Case Studies</p>
+    </header>
+
+    <main id="map-container" class="w-screen h-screen flex items-center justify-center cursor-grab active:cursor-grabbing">
+        </main>
+
+    <aside id="sidebar" class="fixed top-0 right-0 h-full w-full md:w-[48vw] bg-zinc-900 border-l border-zinc-800 transform translate-x-full transition-transform duration-500 ease-in-out z-20 overflow-y-auto shadow-2xl">
+        <div class="p-4 border-b border-zinc-800 flex justify-between items-center sticky top-0 bg-zinc-900 z-30">
+            <span id="sidebar-title" class="text-xs uppercase tracking-widest font-bold text-zinc-400">Analysis</span>
+            <button onclick="resetMap()" class="p-2 hover:bg-zinc-800 rounded transition-colors">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div id="sidebar-content" class="p-8 prose prose-invert prose-zinc max-w-none">
+            </div>
+    </aside>
+
+    <script src="main.js"></script>
+</body>
+</html>

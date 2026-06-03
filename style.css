@@ -1,0 +1,144 @@
+/* Custom scrollbar for a clean look */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #18181b; }
+::-webkit-scrollbar-thumb { background: #3f3f46; }
+
+body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevents unwanted scrollbars */
+}
+
+#map-container {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #050505; /* Match your deep dark theme */
+}
+
+#map-container svg {
+    max-width: 100vw;
+    max-height: 100vh;
+    filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
+}
+
+.land {
+    fill: #222; /* Slightly lighter than background to see shapes */
+    stroke: #444;
+    stroke-width: 0.5;
+    transition: fill 0.3s;
+}
+
+.pin {
+    fill: #f43f5e; /* Rose-500 */
+    cursor: pointer;
+    transition: transform 0.2s, r 0.2s;
+}
+
+.pin:hover {
+    r: 6;
+    transform: scale(1.5);
+}
+
+.map-label {
+    fill: #eee;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    pointer-events: none;
+    transition: font-size 0.2s, x 0.2s;
+    font-size: 10px;
+}
+
+/* 1. Sidebar Content Wrapper */
+#sidebar-content {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.6;
+}
+
+/* 2. Lists: Force bullets and numbers to appear */
+#sidebar-content ul {
+    list-style-type: disc !important;
+    margin-left: 1.5rem !important;
+    margin-bottom: 1rem;
+}
+
+#sidebar-content ol {
+    list-style-type: decimal !important;
+    margin-left: 1.5rem !important;
+    margin-bottom: 1rem;
+}
+
+/* 3. Nested Lists: Fix bullets inside numbered items */
+#sidebar-content ol ul, 
+#sidebar-content ul ul {
+    list-style-type: circle !important;
+    margin-left: 1.5rem !important;
+    margin-top: 0.5rem;
+}
+
+#sidebar-content li {
+    margin-bottom: 0.5rem;
+    display: list-item; /* Ensures the browser treats it as a list element */
+}
+
+/* 4. The Non-Scroll Table Fix (Keep this as is) */
+#sidebar-content table {
+    display: table;
+    width: 100% !important;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin: 1.5rem 0;
+}
+
+#sidebar-content th, 
+#sidebar-content td {
+    border: 1px solid #27272a;
+    padding: 8px 12px;
+    text-align: left;
+    white-space: normal;
+    vertical-align: top;
+}
+
+#sidebar-content th { 
+    background: #18181b; 
+    color: #f4f4f5;
+}
+
+#sidebar-content td:first-child {
+    width: 150px; /* Increased from 100px since the sidebar is wider */
+    color: #a1a1aa;
+    font-weight: 500;
+}
+
+/* 5. Header Styling */
+#sidebar-content h2 {
+    font-size: 1.25rem;
+    margin-top: 2rem;
+    color: #f4f4f5;
+    border-bottom: 1px solid #27272a;
+    padding-bottom: 0.5rem;
+}
+
+#sidebar-content h2:first-of-type {
+    margin-top: 0; /* Prevents awkward gap if a header is at the top */
+}
+
+/* Smooth out the transitions */
+#sidebar {
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 6. Media Fix */
+#sidebar-content img, 
+#sidebar-content video {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Change all list markers (bullets and numbers) to white */
+#sidebar-content :is(ul, ol) li::marker {
+    color: #eee !important;
+}
