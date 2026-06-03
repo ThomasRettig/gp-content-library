@@ -14,12 +14,34 @@
     "label": "Policing of Uyghurs",
     "title": "Digital Policing of Uyghurs in China",
     "location": "Xinjiang Province, China",
-    "themes": "Governance, Science and Technology, Social Issues",
+    "themes": "Governance, Science and Technology, Human Rights",
     "date": "2019",
     "lat": 41.8,
     "lng": 84.95,
     "file": "content/digital-policing-of-uyghurs-in-china.md",
     "displayLabel": "Policing of Uyghurs"
+  },
+  {
+    "label": "Haiti child recruitment",
+    "title": "What I Told Members of the UN Security Council About the Recruitment and Use of Children in Haiti—and What We Need to Do Next",
+    "location": "Haiti",
+    "themes": "Education, Humanitarian Aid, Conflict, Poverty",
+    "date": "18 March 2026",
+    "lat": 18.5392,
+    "lng": -72.3364,
+    "file": "content/haiti-child-recruitment.md",
+    "displayLabel": "Haiti child recruitment"
+  },
+  {
+    "label": "India CAA-NRC",
+    "title": "Border Communities and Citizenship: The NRC, CAA and the Erosion of Constitutional Values in India",
+    "location": "India",
+    "themes": "Constitutional Law, Human Rights, Nationalism",
+    "date": "08 November 2024",
+    "lat": 20.593684,
+    "lng": 78.96288,
+    "file": "content/india-caa-nrc.md",
+    "displayLabel": "India CAA-NRC"
   },
   {
     "label": "US-Iran conflict",
@@ -31,5 +53,16 @@
     "lng": 56.2667,
     "file": "content/us-iran-strikes.md",
     "displayLabel": "US-Iran conflict"
+  },
+  {
+    "label": "Yemen media coverage",
+    "title": "Two Tales of One War: Media Coverage of the Yemeni Civil War",
+    "location": "Yemen",
+    "themes": "Media, Conflict, Humanitarian Aid",
+    "date": "17 April 2023",
+    "lat": 15.5527,
+    "lng": 48.5164,
+    "file": "content/yemen-media-coverage.md",
+    "displayLabel": "Yemen media coverage"
   }
 ]

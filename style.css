@@ -142,3 +142,45 @@ body, html {
 #sidebar-content :is(ul, ol) li::marker {
     color: #eee !important;
 }
+
+/* Container when expanded */
+#filter-container.active {
+    opacity: 1;
+    pointer-events: auto;
+    translate-y: 0;
+    scale: 1;
+}
+
+/* Ensure buttons don't wrap weirdly on mobile */
+#filter-container button {
+    white-space: nowrap;
+    width: fit-content;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+@media (max-width: 768px) {
+    /* Optional: limit the height and make it scrollable if you have 20+ themes */
+    #filter-container {
+        max-height: 60vh;
+        overflow-y: auto;
+        padding-bottom: 10px;
+        /* Hide scrollbar for aesthetics */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    #filter-container::-webkit-scrollbar { display: none; }
+}
+
+.filter-pill {
+    backdrop-filter: blur(8px);
+}
+
+.filter-pill:hover {
+    opacity: 1 !important;
+    grayscale: 0 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.filter-pill:active {
+    transform: scale(0.95);
+}

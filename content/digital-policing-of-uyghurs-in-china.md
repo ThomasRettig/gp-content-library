@@ -2,7 +2,7 @@
 label: "Policing of Uyghurs"
 title: "Digital Policing of Uyghurs in China"
 location: "Xinjiang Province, China"
-themes: "Governance, Science and Technology, Social Issues"
+themes: "Governance, Science and Technology, Human Rights"
 date: "2019"
 lat: 41.8
 lng: 84.95

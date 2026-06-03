@@ -14,9 +14,89 @@ async function init() {
 
         // Initial render
         renderMap(worldData, points);
+        setupFilters(points);
 
         // Re-render on window resize to fix blank space dynamically
         window.addEventListener('resize', () => renderMap(worldData, points));
+
+        let activeFilters = new Set();
+
+        function setupFilters(points) {
+            const container = document.getElementById('filter-container');
+            container.style.pointerEvents = 'auto'; // Re-enable clicks
+            
+            // 1. Get every unique theme from your data.json
+            const allThemes = new Set();
+            points.forEach(p => {
+                if (p.themes) {
+                    p.themes.split(',').forEach(t => allThemes.add(t.trim()));
+                }
+            });
+
+            // 2. Create a button for each theme
+            allThemes.forEach(theme => {
+                const color = getThemeColor(theme);
+                const btn = document.createElement('button');
+                
+                btn.innerText = theme;
+                btn.className = "filter-pill px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all duration-300 opacity-40 grayscale";
+                
+                // Use the same glassmorphism style as the tags
+                btn.style.borderColor = color;
+                btn.style.color = color;
+                btn.style.backgroundColor = `${color}11`;
+
+                btn.onclick = () => toggleFilter(theme, btn, points);
+                container.appendChild(btn);
+            });
+        }
+
+        function toggleFilter(theme, btn, points) {
+            // Toggle active state
+            if (activeFilters.has(theme)) {
+                activeFilters.delete(theme);
+                btn.classList.add('opacity-40', 'grayscale');
+            } else {
+                activeFilters.add(theme);
+                btn.classList.remove('opacity-40', 'grayscale');
+            }
+
+            updateMapVisibility(points);
+        }
+
+        function updateMapVisibility(points) {
+            d3.selectAll('.pin-group')
+                .transition()
+                .duration(400)
+                .style('opacity', d => {
+                    // If no filters are selected, show everything
+                    if (activeFilters.size === 0) return 1;
+                    
+                    // Check if this point has ANY of the active themes
+                    const pointThemes = d.themes ? d.themes.split(',').map(t => t.trim()) : [];
+                    const isMatch = pointThemes.some(t => activeFilters.has(t));
+                    
+                    return isMatch ? 1 : 0.15; // Dim non-matches to 15%
+                })
+                .style('pointer-events', d => {
+                    if (activeFilters.size === 0) return 'auto';
+                    const pointThemes = d.themes ? d.themes.split(',').map(t => t.trim()) : [];
+                    return pointThemes.some(t => activeFilters.has(t)) ? 'auto' : 'none';
+                });
+            // Update the "Active Count" Badge
+            const badge = document.getElementById('active-count');
+            if (activeFilters.size > 0) {
+                badge.innerText = activeFilters.size;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            // Ensure the drawer closes when clicking the map
+            d3.select('#world-map').on('click.drawer', () => {
+                document.getElementById('filter-container').classList.remove('active');
+            });
+        }
 
     } catch (error) {
         console.error("Init failed:", error);
@@ -41,7 +121,18 @@ function renderMap(worldData, points) {
     const g = svg.append('g'); // All map elements go in this group for zooming
 
     currentProjection = d3.geoMercator();
-    currentProjection.fitExtent([[50, 50], [width - 50, height - 50]], worldData);
+
+    // 1. Initial fit to get the "baseline" world size
+    currentProjection.fitSize([width, height], worldData);
+
+    // 2. BOOST THE SCALE: Multiply by 1.3 to fill all vertical bars.
+    // This forces the landmasses to hit the top and bottom of your screen.
+    const fillScale = currentProjection.scale() * 1.3;
+    currentProjection.scale(fillScale);
+
+    // 3. RE-CENTER: Ensure the map stays centered on the coordinates [0, 20] 
+    // (We shift it slightly north so Antarctica doesn't take up too much space)
+    currentProjection.center([0, 20]); 
 
     const path = d3.geoPath().projection(currentProjection);
 
@@ -249,7 +340,7 @@ function getThemeColor(str) {
     // Saturation: 70% (Vibrant but not neon)
     // Lightness: 65% (Bright enough to read against dark backgrounds)
     const h = Math.abs(hash) % 360;
-    return `hsl(${h}, 70%, 65%)`;
+    return `hsl(${h}, 65%, 65%)`;
 }
 
 // Listen for keyboard events globally
@@ -265,6 +356,11 @@ document.addEventListener('keydown', (event) => {
         }
     }
 });
+
+function toggleFilterDrawer() {
+    const container = document.getElementById('filter-container');
+    container.classList.toggle('active');
+}
 
 // Start the app
 init();

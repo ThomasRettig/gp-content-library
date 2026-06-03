@@ -17,6 +17,17 @@
         <p class="text-sm text-zinc-400 mt-2">Geopolitical Case Studies</p>
     </header>
 
+    <aside class="fixed bottom-6 left-6 z-50">
+        <button id="filter-toggle" onclick="toggleFilterDrawer()" 
+                class="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-full shadow-2xl transition-all active:scale-95">
+            <span class="text-[10px] font-bold uppercase tracking-widest">Filters</span>
+            <div id="active-count" class="hidden w-4 h-4 bg-blue-500 text-[10px] flex items-center justify-center rounded-full">0</div>
+        </button>
+
+        <div id="filter-container" class="absolute bottom-14 left-0 flex flex-col gap-2 transition-all duration-300 opacity-0 pointer-events-none translate-y-4 scale-95 origin-bottom-left">
+            </div>
+    </aside>
+
     <main id="map-container" class="w-screen h-screen flex items-center justify-center cursor-grab active:cursor-grabbing">
         </main>
 
