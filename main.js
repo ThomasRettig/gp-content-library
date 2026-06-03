@@ -252,5 +252,19 @@ function getThemeColor(str) {
     return `hsl(${h}, 70%, 65%)`;
 }
 
+// Listen for keyboard events globally
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        // 1. Check if the sidebar is currently open
+        const isSidebarOpen = !document.getElementById('sidebar').classList.contains('translate-x-full');
+        
+        if (isSidebarOpen) {
+            // 2. Trigger your existing reset function
+            // This closes the sidebar AND resets the map zoom
+            resetMap();
+        }
+    }
+});
+
 // Start the app
 init();
