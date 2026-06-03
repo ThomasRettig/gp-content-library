@@ -39,7 +39,7 @@ async function init() {
                 const btn = document.createElement('button');
                 
                 btn.innerText = theme;
-                btn.className = "filter-pill px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all duration-300 opacity-40 grayscale";
+                btn.className = "filter-pill px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all duration-300 opacity-60 grayscale";
                 
                 // Use the same glassmorphism style as the tags
                 btn.style.borderColor = color;
@@ -55,10 +55,10 @@ async function init() {
             // Toggle active state
             if (activeFilters.has(theme)) {
                 activeFilters.delete(theme);
-                btn.classList.add('opacity-40', 'grayscale');
+                btn.classList.add('opacity-50', 'grayscale');
             } else {
                 activeFilters.add(theme);
-                btn.classList.remove('opacity-40', 'grayscale');
+                btn.classList.remove('opacity-50', 'grayscale');
             }
 
             updateMapVisibility(points);
