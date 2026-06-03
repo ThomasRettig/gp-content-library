@@ -158,6 +158,17 @@ body, html {
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
+#filter-container {
+    max-height: 70vh; /* Don't go off-screen */
+    overflow-y: auto;
+    padding: 10px;
+    scrollbar-width: none; /* Firefox */
+}
+
+#filter-container::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
 @media (max-width: 768px) {
     /* Optional: limit the height and make it scrollable if you have 20+ themes */
     #filter-container {

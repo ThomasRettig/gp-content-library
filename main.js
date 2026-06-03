@@ -1,7 +1,14 @@
+// 1. GLOBAL STATE & CACHING
 const sidebar = document.getElementById('sidebar');
 const sidebarContent = document.getElementById('sidebar-content');
+const filterContainer = document.getElementById('filter-container');
+const activeBadge = document.getElementById('active-count');
 
-// 1. Fetch data
+let allPoints = [];
+let activeFilters = new Set();
+let currentProjection; 
+
+// 2. INITIALIZATION
 async function init() {
     try {
         const [pointsRes, mapRes] = await Promise.all([
@@ -9,103 +16,32 @@ async function init() {
             fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
         ]);
         
-        const points = await pointsRes.json();
+        const rawPoints = await pointsRes.json();
         const worldData = await mapRes.json();
 
-        // Initial render
-        renderMap(worldData, points);
-        setupFilters(points);
+        // OPTIMIZATION: Pre-process theme arrays once to save CPU during filtering
+        allPoints = rawPoints.map(p => ({
+            ...p,
+            themeArray: p.themes ? p.themes.split(',').map(t => t.trim()) : []
+        }));
 
-        // Re-render on window resize to fix blank space dynamically
-        window.addEventListener('resize', () => renderMap(worldData, points));
+        // Initial render (Called only once)
+        renderMap(worldData, allPoints);
+        setupFilters(allPoints);
 
-        let activeFilters = new Set();
-
-        function setupFilters(points) {
-            const container = document.getElementById('filter-container');
-            container.style.pointerEvents = 'auto'; // Re-enable clicks
-            
-            // 1. Get every unique theme from your data.json
-            const allThemes = new Set();
-            points.forEach(p => {
-                if (p.themes) {
-                    p.themes.split(',').forEach(t => allThemes.add(t.trim()));
-                }
-            });
-
-            // 2. Create a button for each theme
-            allThemes.forEach(theme => {
-                const color = getThemeColor(theme);
-                const btn = document.createElement('button');
-                
-                btn.innerText = theme;
-                btn.className = "filter-pill px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all duration-300 opacity-60 grayscale";
-                
-                // Use the same glassmorphism style as the tags
-                btn.style.borderColor = color;
-                btn.style.color = color;
-                btn.style.backgroundColor = `${color}11`;
-
-                btn.onclick = () => toggleFilter(theme, btn, points);
-                container.appendChild(btn);
-            });
-        }
-
-        function toggleFilter(theme, btn, points) {
-            // Toggle active state
-            if (activeFilters.has(theme)) {
-                activeFilters.delete(theme);
-                btn.classList.add('opacity-50', 'grayscale');
-            } else {
-                activeFilters.add(theme);
-                btn.classList.remove('opacity-50', 'grayscale');
-            }
-
-            updateMapVisibility(points);
-        }
-
-        function updateMapVisibility(points) {
-            d3.selectAll('.pin-group')
-                .transition()
-                .duration(400)
-                .style('opacity', d => {
-                    // If no filters are selected, show everything
-                    if (activeFilters.size === 0) return 1;
-                    
-                    // Check if this point has ANY of the active themes
-                    const pointThemes = d.themes ? d.themes.split(',').map(t => t.trim()) : [];
-                    const isMatch = pointThemes.some(t => activeFilters.has(t));
-                    
-                    return isMatch ? 1 : 0.15; // Dim non-matches to 15%
-                })
-                .style('pointer-events', d => {
-                    if (activeFilters.size === 0) return 'auto';
-                    const pointThemes = d.themes ? d.themes.split(',').map(t => t.trim()) : [];
-                    return pointThemes.some(t => activeFilters.has(t)) ? 'auto' : 'none';
-                });
-            // Update the "Active Count" Badge
-            const badge = document.getElementById('active-count');
-            if (activeFilters.size > 0) {
-                badge.innerText = activeFilters.size;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-
-            // Ensure the drawer closes when clicking the map
-            d3.select('#world-map').on('click.drawer', () => {
-                document.getElementById('filter-container').classList.remove('active');
-            });
-        }
+        // OPTIMIZATION: Debounced resize handler
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => renderMap(worldData, allPoints), 200);
+        });
 
     } catch (error) {
         console.error("Init failed:", error);
     }
 }
 
-// 2. Optimized Map rendering
-let currentProjection; // Store globally so openSidebar can access it
-
+// 3. MAP RENDERING
 function renderMap(worldData, points) {
     const container = document.getElementById('map-container');
     const width = container.clientWidth;
@@ -118,33 +54,24 @@ function renderMap(worldData, points) {
         .attr('height', height)
         .attr('id', 'world-map');
 
-    const g = svg.append('g'); // All map elements go in this group for zooming
+    // Create a single group with a stable ID for zooming
+    const g = svg.append('g').attr('id', 'world-map-group'); 
 
     currentProjection = d3.geoMercator();
-
-    // 1. Initial fit to get the "baseline" world size
     currentProjection.fitSize([width, height], worldData);
 
-    // 2. BOOST THE SCALE: Multiply by 1.3 to fill all vertical bars.
-    // This forces the landmasses to hit the top and bottom of your screen.
+    // Zoom boost to fill the screen (Edge-to-Edge)
     const fillScale = currentProjection.scale() * 1.3;
-    currentProjection.scale(fillScale);
-
-    // 3. RE-CENTER: Ensure the map stays centered on the coordinates [0, 20] 
-    // (We shift it slightly north so Antarctica doesn't take up too much space)
-    currentProjection.center([0, 20]); 
+    currentProjection.scale(fillScale).center([0, 20]); 
 
     const path = d3.geoPath().projection(currentProjection);
 
-    // 1. Define the Zoom Behavior
+    // Zoom behavior setup
     const zoom = d3.zoom()
-        .scaleExtent([1, 8]) // Limit zoom from 1x to 8x
+        .scaleExtent([1, 8])
         .filter(event => !event.button && event.type !== 'dblclick')
         .on('zoom', (event) => {
-            // Apply the transformation to the group
             g.attr('transform', event.transform);
-
-            // 2. SCALE-AWARENESS: Adjust pins and labels dynamically
             const k = event.transform.k;
             d3.selectAll('.pin').attr('r', 5 / k);
             d3.selectAll('.map-label')
@@ -152,16 +79,7 @@ function renderMap(worldData, points) {
                 .attr('x', 15 / k);
         });
 
-    // 2. Attach zoom to the SVG
     svg.call(zoom);
-
-    // 3. Keep your 'focusOnPin' working
-    // We need to tell the zoom behavior that we moved the camera manually
-    window.manualZoomTo = (translateX, translateY, k) => {
-        svg.transition()
-           .duration(750)
-           .call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY).scale(k));
-    };
 
     // Draw Land
     g.append('g')
@@ -171,10 +89,10 @@ function renderMap(worldData, points) {
         .append('path')
         .attr('d', path)
         .attr('class', 'land')
-        .on('click', resetMap); // Clicking empty ocean resets zoom
+        .on('click', resetMap);
 
     // Draw Pins
-    const pins = g.append('g')
+    const pinGroups = g.append('g')
         .selectAll('g')
         .data(points)
         .enter()
@@ -185,62 +103,45 @@ function renderMap(worldData, points) {
             return `translate(${coords[0]}, ${coords[1]})`;
         })
         .on('click', (event, d) => {
-            event.stopPropagation(); // Prevent land click from triggering
-            focusOnPin(d);
-            openSidebar(d.file);
-        });
-
-    // Inside your renderMap function, find where you append the pins
-    pins.append('circle')
-        .attr('r', 5)
-        .attr('class', 'pin')
-        .on('mouseenter', function(event, d) {
-            // Get the current zoom scale from the 'g' element
-            const transform = d3.zoomTransform(d3.select('#world-map g').node());
-            const k = transform.k; // This is your current zoom level (e.g., 4)
-
-            // Adjust the hover radius so it stays visually consistent
-            // Instead of a fixed size, we divide the desired "visual" size by k
-            d3.select(this)
-                .transition()
-                .duration(200)
-                .attr('r', 5 / k); // 8 is the "unzoomed" hover size
-        })
-        .on('mouseleave', function(event, d) {
-            const transform = d3.zoomTransform(d3.select('#world-map g').node());
-            const k = transform.k;
-
-            d3.select(this)
-                .transition()
-                .duration(200)
-                .attr('r', 5 / k); // Return to standard size (adjusted for zoom)
-        })
-        .on('click', (event, d) => {
             event.stopPropagation();
             focusOnPin(d);
             openSidebar(d.file);
         });
 
-    pins.append('text')
+    pinGroups.append('circle')
+        .attr('r', 5)
+        .attr('class', 'pin')
+        .on('mouseenter', function() {
+            const k = d3.zoomTransform(d3.select('#world-map').node()).k;
+            d3.select(this)
+                .transition('hover').duration(200)
+                .attr('r', 8 / k); 
+        })
+        .on('mouseleave', function() {
+            const k = d3.zoomTransform(d3.select('#world-map').node()).k;
+            d3.select(this)
+                .transition('hover').duration(200)
+                .attr('r', 5 / k);
+        });
+
+    pinGroups.append('text')
         .attr('x', 10).attr('y', 4)
         .text(d => d.displayLabel)
         .attr('class', 'map-label');
 }
 
+// 4. NAVIGATION & CAMERA
 function focusOnPin(d) {
     const container = document.getElementById('map-container');
     const width = container.clientWidth;
     const height = container.clientHeight;
     
     const coords = currentProjection([d.lng, d.lat]);
-    const x = coords[0];
-    const y = coords[1];
     const k = 4;
 
-    const translateX = (width / 4) - k * x; 
-    const translateY = (height / 2) - k * y;
+    const translateX = (width / 4) - k * coords[0]; 
+    const translateY = (height / 2) - k * coords[1];
 
-    // Use the new sync function to move the 'camera'
     d3.select('#world-map').transition()
         .duration(750)
         .call(d3.zoom().transform, d3.zoomIdentity.translate(translateX, translateY).scale(k));
@@ -248,18 +149,22 @@ function focusOnPin(d) {
 
 function resetMap() {
     closeSidebar();
-    d3.select('#world-map g')
-        .transition()
+    d3.select('#world-map').transition()
         .duration(750)
-        .attr('transform', `translate(0,0)scale(1)`);
-        
-    d3.selectAll('.pin').transition().duration(750).attr('r', 5);
-    d3.selectAll('.map-label').transition().duration(750).style('font-size', '10px').attr('x', 10);
+        .call(d3.zoom().transform, d3.zoomIdentity);
 }
 
-// 3. Sidebar and Markdown Logic
+// 5. SIDEBAR & MARKDOWN
 async function openSidebar(filePath) {
     sidebar.classList.remove('translate-x-full');
+        
+    // Hide the filter toggle
+    const filterToggle = document.getElementById('filter-toggle');
+    if (filterToggle) {
+        filterToggle.style.opacity = '0';
+        filterToggle.style.pointerEvents = 'none';
+    }
+
     sidebarContent.innerHTML = `<p class="animate-pulse">Loading...</p>`;
     
     try {
@@ -267,25 +172,17 @@ async function openSidebar(filePath) {
         if (!response.ok) throw new Error("File not found");
         const rawText = await response.text();
         
-        // 1. Robustly split YAML from Markdown
-        // This looks for the second occurrence of ---
         const parts = rawText.split('---');
         if (parts.length < 3) throw new Error("Invalid YAML format");
         
-        const yamlRaw = parts[1];
+        const yamlData = jsyaml.load(parts[1]); 
         const markdownBody = parts.slice(2).join('---');
 
-        // 2. Parse YAML using the library we just added
-        const yamlData = jsyaml.load(yamlRaw); 
-
-        // 3. Construct Header
-        const themes = yamlData.themes ? yamlData.themes.split(',') : [];
+        const themes = yamlData.themeArray || (yamlData.themes ? yamlData.themes.split(',').map(t => t.trim()) : []);
 
         let sidebarHeader = `
             <div class="mb-8">
-                <h1 class="text-2xl font-bold text-zinc-100 leading-tight mb-2">
-                    ${yamlData.title || "Untitled"}
-                </h1>
+                <h1 class="text-2xl font-bold text-zinc-100 leading-tight mb-2">${yamlData.title || "Untitled"}</h1>
                 <div class="flex items-center gap-2 text-zinc-500 text-xs font-medium uppercase tracking-widest mb-4">
                     <span>${yamlData.location || "Unknown"}</span>
                     <span>•</span>
@@ -293,74 +190,108 @@ async function openSidebar(filePath) {
                 </div>
                 <div class="flex flex-wrap gap-2">
                     ${themes.map(t => {
-                        const cleanTag = t.trim();
-                        if (!cleanTag) return ''; // Skip empty tags
-                        
-                        const color = getThemeColor(cleanTag);
-                        
-                        return `
-                            <span class="px-2 py-0.5 border rounded text-[9px] uppercase tracking-widest font-bold" 
-                                  style="background-color: ${color.replace('hsl', 'hsla').replace(')', ', 0.15)')}; 
-                                         border-color: ${color}; 
-                                         color: ${color};">
-                                ${cleanTag}
-                            </span>
-                        `;
+                        const color = getThemeColor(t);
+                        return `<span class="px-2 py-0.5 border rounded text-[9px] uppercase tracking-widest font-bold" 
+                                      style="background-color: ${color.replace('hsl', 'hsla').replace(')', ', 0.15)')}; border-color: ${color}; color: ${color};">${t}</span>`;
                     }).join('')}
                 </div>
             </div>
         `;
 
-        sidebarContent.innerHTML = sidebarHeader + marked.parse(markdownBody);
-        
+        const relatedHTML = getRelatedCasesHTML(filePath, yamlData.themes);
+        sidebarContent.innerHTML = sidebarHeader + marked.parse(markdownBody) + relatedHTML;
+                
     } catch (err) {
-        console.error("Sidebar Error:", err);
-        sidebarContent.innerHTML = `
-            <div class="p-4 border border-red-900/50 bg-red-900/10 rounded">
-                <p class="text-red-400 font-bold">Error loading content</p>
-                <p class="text-xs text-red-300/60 mt-1">${err.message}</p>
-                <p class="text-xs text-zinc-500 mt-4 underline cursor-help" onclick="location.reload()">Try refreshing the page</p>
-            </div>
-        `;
+        sidebarContent.innerHTML = `<div class="p-4 border border-red-900/50 bg-red-900/10 rounded"><p class="text-red-400 font-bold">Error loading content</p><p class="text-xs text-red-300/60 mt-1">${err.message}</p></div>`;
     }
 }
 
 function closeSidebar() {
     sidebar.classList.add('translate-x-full');
+
+    // Show the filter toggle again
+    const filterToggle = document.getElementById('filter-toggle');
+    if (filterToggle) {
+        filterToggle.style.opacity = '1';
+        filterToggle.style.pointerEvents = 'auto';
+    }
 }
 
+// 6. FILTERING LOGIC
+function setupFilters(points) {
+    filterContainer.innerHTML = ''; // Clear previous
+    filterContainer.style.pointerEvents = 'auto';
+    
+    const allThemes = new Set();
+    points.forEach(p => p.themeArray.forEach(t => allThemes.add(t)));
+
+    allThemes.forEach(theme => {
+        const color = getThemeColor(theme);
+        const btn = document.createElement('button');
+        btn.innerText = theme;
+        btn.className = "filter-pill px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all duration-300 opacity-60 grayscale";
+        btn.style.borderColor = color;
+        btn.style.color = color;
+        btn.style.backgroundColor = `${color}11`;
+
+        btn.onclick = () => {
+            if (activeFilters.has(theme)) {
+                activeFilters.delete(theme);
+                btn.classList.add('opacity-60', 'grayscale');
+            } else {
+                activeFilters.add(theme);
+                btn.classList.remove('opacity-60', 'grayscale');
+            }
+            updateMapVisibility();
+        };
+        filterContainer.appendChild(btn);
+    });
+}
+
+function updateMapVisibility() {
+    d3.selectAll('.pin-group')
+        .transition().duration(400)
+        .style('opacity', d => {
+            if (activeFilters.size === 0) return 1;
+            return d.themeArray.some(t => activeFilters.has(t)) ? 1 : 0.15;
+        })
+        .style('pointer-events', d => (activeFilters.size === 0 || d.themeArray.some(t => activeFilters.has(t))) ? 'auto' : 'none');
+
+    if (activeFilters.size > 0) {
+        activeBadge.innerText = activeFilters.size;
+        activeBadge.classList.remove('hidden');
+    } else {
+        activeBadge.classList.add('hidden');
+    }
+}
+
+// 7. HELPERS
 function getThemeColor(str) {
     let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        // Simple hashing algorithm
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    // Hue: 0-360 based on the hash
-    // Saturation: 70% (Vibrant but not neon)
-    // Lightness: 65% (Bright enough to read against dark backgrounds)
-    const h = Math.abs(hash) % 360;
-    return `hsl(${h}, 65%, 65%)`;
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    return `hsl(${Math.abs(hash) % 360}, 65%, 65%)`;
 }
 
-// Listen for keyboard events globally
-document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-        // 1. Check if the sidebar is currently open
-        const isSidebarOpen = !document.getElementById('sidebar').classList.contains('translate-x-full');
-        
-        if (isSidebarOpen) {
-            // 2. Trigger your existing reset function
-            // This closes the sidebar AND resets the map zoom
-            resetMap();
-        }
-    }
-});
+function getRelatedCasesHTML(currentFile, currentThemesStr) {
+    if (!currentThemesStr) return '';
+    const themes = currentThemesStr.split(',').map(t => t.trim());
+    const related = allPoints.filter(p => p.file !== currentFile && p.themeArray.some(t => themes.includes(t))).slice(0, 3);
 
-function toggleFilterDrawer() {
-    const container = document.getElementById('filter-container');
-    container.classList.toggle('active');
+    if (related.length === 0) return '';
+    return `<div class="mt-12 pt-8 border-t border-zinc-800"><h3 class="text-zinc-500 text-[10px] uppercase tracking-[0.2em] mb-4">Related Evidence</h3><div class="grid gap-3">
+        ${related.map(p => `<div onclick="focusOnPinByFile('${p.file}')" class="group cursor-pointer p-3 rounded-lg bg-zinc-900/50 border border-zinc-800 hover:border-zinc-600 transition-all">
+            <p class="text-s font-bold text-zinc-300 group-hover:text-blue-400 transition-colors">${p.displayLabel}</p>
+            <p class="text-[12px] text-zinc-500 mt-1">${p.location} • ${p.date}</p>
+        </div>`).join('')}</div></div>`;
 }
 
-// Start the app
+window.focusOnPinByFile = (fileName) => {
+    const target = allPoints.find(p => p.file === fileName);
+    if (target) { focusOnPin(target); openSidebar(target.file); }
+};
+
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') resetMap(); });
+function toggleFilterDrawer() { filterContainer.classList.toggle('active'); }
+
+// 8. START
 init();
