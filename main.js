@@ -48,6 +48,7 @@ function renderMap(worldData, points) {
     // 1. Define the Zoom Behavior
     const zoom = d3.zoom()
         .scaleExtent([1, 8]) // Limit zoom from 1x to 8x
+        .filter(event => !event.button && event.type !== 'dblclick')
         .on('zoom', (event) => {
             // Apply the transformation to the group
             g.attr('transform', event.transform);
