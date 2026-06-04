@@ -63,7 +63,7 @@ Your GP analysis goes here...
 
 2. **Register the point** in `data.json`:
 
-Run `node generate-data.js` in the root directory and `data.json` will automatically be populated with your newly added Markdown entry:
+Run `node generate-data.js` in the root directory and `data.json` will automatically be populated with your newly added Markdown entry, like so:
 
 ```json
 {
