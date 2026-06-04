@@ -222,3 +222,20 @@ body, html {
     color: #000;
     border-color: #fbbf24;
 }
+
+/* Sidebar Status Dot Animation */
+#mastery-btn.active #mastery-dot {
+    box-shadow: 0 0 8px #f59e0b; /* amber-500 */
+    animation: dot-pulse 2s infinite ease-in-out;
+}
+
+@keyframes dot-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+/* Ensure the title wraps elegantly on tiny screens */
+h1 {
+    overflow-wrap: break-word;
+    hyphens: auto;
+}

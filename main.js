@@ -58,7 +58,7 @@ function renderMap(worldData, points) {
     const g = svg.append('g').attr('id', 'world-map-group'); 
 
     currentProjection = d3.geoMercator();
-    
+
     // 1. Initial fit to get a baseline
     currentProjection.fitSize([width, height], worldData);
 
@@ -211,24 +211,42 @@ async function openSidebar(filePath) {
         const themes = yamlData.themeArray || (yamlData.themes ? yamlData.themes.split(',').map(t => t.trim()) : []);
 
         let sidebarHeader = `
-            <div class="mb-8">
-                <div class="flex justify-between items-start">
-                    <h1 class="text-2xl font-bold text-zinc-100 leading-tight">${yamlData.title || "Untitled"}</h1>
+            <div class="mb-8 flex flex-col gap-0">
+                <div class="flex items-center justify-between border-b border-zinc-800/50 pb-4">
+                    <div class="flex flex-col gap-1">
+                        <span class="text-zinc-200 text-[10px] font-bold uppercase tracking-widest">
+                            ${yamlData.location || "Global"}
+                        </span>
+                        <span class="text-zinc-400 text-[10px] font-medium uppercase tracking-widest">
+                            ${yamlData.date || ""}
+                        </span>
+                    </div>
+                    
                     <button onclick="toggleMastery('${filePath}')" id="mastery-btn" 
-                            class="flex items-center gap-2 px-3 py-1.5 border border-zinc-700 rounded-full transition-all duration-300">
-                        <span class="text-[10px] font-bold uppercase tracking-widest" id="mastery-label">Mastered?</span>
+                            class="group flex items-center gap-2 px-3 py-1.5 rounded-full border border-zinc-700 bg-zinc-900/50 transition-all active:scale-95">
+                        <div id="mastery-dot" class="w-2 h-2 rounded-full bg-zinc-600 transition-colors"></div>
+                        <span id="mastery-label" class="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-200">
+                            Mastered?
+                        </span>
                     </button>
                 </div>
-                <div class="flex items-center gap-2 text-zinc-500 text-xs font-medium uppercase tracking-widest mb-4">
-                    <span>${yamlData.location || "Unknown"}</span>
-                    <span>•</span>
-                    <span>${yamlData.date || ""}</span>
-                </div>
+
+                <h1 class="text-2xl sm:text-3xl font-bold text-zinc-100 leading-tight tracking-tight">
+                    ${yamlData.title || "Untitled Case Study"}
+                </h1>
+
                 <div class="flex flex-wrap gap-2">
                     ${themes.map(t => {
-                        const color = getThemeColor(t);
-                        return `<span class="px-2 py-0.5 border rounded text-[9px] uppercase tracking-widest font-bold" 
-                                      style="background-color: ${color.replace('hsl', 'hsla').replace(')', ', 0.15)')}; border-color: ${color}; color: ${color};">${t}</span>`;
+                        const cleanTag = t.trim();
+                        if (!cleanTag) return '';
+                        const color = getThemeColor(cleanTag);
+                        return `
+                            <span class="px-2 py-0.5 border rounded text-[9px] uppercase tracking-widest font-bold" 
+                                  style="background-color: ${color.replace('hsl', 'hsla').replace(')', ', 0.15)')}; 
+                                         border-color: ${color}; color: ${color};">
+                                ${cleanTag}
+                            </span>
+                        `;
                     }).join('')}
                 </div>
             </div>
@@ -390,16 +408,23 @@ window.toggleMastery = (filePath) => {
 
 function updateMasterySidebarUI(filePath) {
     const btn = document.getElementById('mastery-btn');
+    const dot = document.getElementById('mastery-dot');
     const label = document.getElementById('mastery-label');
     const isMastered = getMasteredList().includes(filePath);
 
-    if (btn) {
+    if (btn && dot && label) {
         if (isMastered) {
-            btn.classList.add('active');
+            btn.classList.add('border-amber-500/50', 'bg-amber-500/10');
+            btn.classList.remove('border-zinc-700', 'bg-zinc-900/50');
+            dot.classList.replace('bg-zinc-600', 'bg-amber-500');
             label.innerText = 'Mastered';
+            label.classList.replace('text-zinc-400', 'text-amber-500');
         } else {
-            btn.classList.remove('active');
+            btn.classList.remove('border-amber-500/50', 'bg-amber-500/10');
+            btn.classList.add('border-zinc-700', 'bg-zinc-900/50');
+            dot.classList.replace('bg-amber-500', 'bg-zinc-600');
             label.innerText = 'Mastered?';
+            label.classList.replace('text-amber-500', 'text-zinc-400');
         }
     }
 }
