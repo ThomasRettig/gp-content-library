@@ -149,6 +149,11 @@ function focusOnPin(d) {
 
 function resetMap() {
     closeSidebar();
+    const container = document.getElementById('filter-container');
+    container.classList.remove('active');
+    container.style.pointerEvents = 'none';
+    container.style.visibility = 'hidden';
+    
     d3.select('#world-map').transition()
         .duration(750)
         .call(d3.zoom().transform, d3.zoomIdentity);
@@ -229,9 +234,12 @@ function setupFilters(points) {
         const color = getThemeColor(theme);
         const btn = document.createElement('button');
         btn.innerText = theme;
-        btn.className = "filter-pill px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all duration-300 opacity-60 grayscale";
-        btn.style.borderColor = color;
+        btn.className = "filter-pill px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all duration-300";
         btn.style.color = color;
+        btn.style.borderColor = color;
+        btn.style.backgroundColor = 'transparent';
+        btn.style.filter = 'saturate(0)'; 
+        btn.style.opacity = '0.5';
         btn.style.backgroundColor = `${color}11`;
 
         btn.onclick = () => {
@@ -291,7 +299,20 @@ window.focusOnPinByFile = (fileName) => {
 };
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') resetMap(); });
-function toggleFilterDrawer() { filterContainer.classList.toggle('active'); }
+
+function toggleFilterDrawer() {
+    const container = document.getElementById('filter-container');
+    filterContainer.classList.toggle('active');
+
+    // Explicitly toggle pointer events based on the active class
+    if (container.classList.contains('active')) {
+        container.style.pointerEvents = 'auto';
+        container.style.visibility = 'visible';
+    } else {
+        container.style.pointerEvents = 'none';
+        container.style.visibility = 'hidden'; // Complete removal from the "touch" layer
+    }
+}
 
 // 8. START
 init();
