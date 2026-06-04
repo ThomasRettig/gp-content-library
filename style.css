@@ -36,15 +36,15 @@ body, html {
 .pin {
     fill: #f43f5e; /* Rose-500 */
     cursor: pointer;
-    transition: transform 0.2s, r 0.2s;
+/*    transition: transform 0.2s, r 0.2s;*/
 }
 
 .map-label {
     fill: #eee;
     text-transform: uppercase;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.15em;
     pointer-events: none;
-    transition: font-size 0s, x 0.2s;
+/*    transition: font-size 0s, x 0s;*/
     font-size: 10px;
 }
 
@@ -204,15 +204,14 @@ body, html {
 
 /* The Mastery Pulse Effect */
 @keyframes mastery-glow {
-    0% { filter: drop-shadow(0 0 2px #fbbf24); }
+    0% { filter: drop-shadow(0 0 4px #fbbf24); }
     50% { filter: drop-shadow(0 0 8px #fbbf24); }
-    100% { filter: drop-shadow(0 0 2px #fbbf24); }
+    100% { filter: drop-shadow(0 0 4px #fbbf24); }
 }
 
 .pin.mastered {
     fill: #fbbf24 !important; /* Gold color */
-    stroke: #fff;
-    stroke-width: 0.3px;
+    -webkit-animation: mastery-glow 2.5s infinite ease-in-out;
     animation: mastery-glow 2.5s infinite ease-in-out;
 }
 
