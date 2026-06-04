@@ -110,7 +110,10 @@ function renderMap(worldData, points) {
 
     pinGroups.append('circle')
         .attr('r', 5)
-        .attr('class', 'pin')
+        .attr('class', d => {
+            const isMastered = getMasteredList().includes(d.file);
+            return isMastered ? 'pin mastered' : 'pin';
+        })
         .on('mouseenter', function() {
             const k = d3.zoomTransform(d3.select('#world-map').node()).k;
             d3.select(this)
@@ -187,7 +190,13 @@ async function openSidebar(filePath) {
 
         let sidebarHeader = `
             <div class="mb-8">
-                <h1 class="text-2xl font-bold text-zinc-100 leading-tight mb-2">${yamlData.title || "Untitled"}</h1>
+                <div class="flex justify-between items-start">
+                    <h1 class="text-2xl font-bold text-zinc-100 leading-tight">${yamlData.title || "Untitled"}</h1>
+                    <button onclick="toggleMastery('${filePath}')" id="mastery-btn" 
+                            class="flex items-center gap-2 px-3 py-1.5 border border-zinc-700 rounded-full transition-all duration-300">
+                        <span class="text-[10px] font-bold uppercase tracking-widest" id="mastery-label">Mastered?</span>
+                    </button>
+                </div>
                 <div class="flex items-center gap-2 text-zinc-500 text-xs font-medium uppercase tracking-widest mb-4">
                     <span>${yamlData.location || "Unknown"}</span>
                     <span>•</span>
@@ -205,6 +214,8 @@ async function openSidebar(filePath) {
 
         const relatedHTML = getRelatedCasesHTML(filePath, yamlData.themes);
         sidebarContent.innerHTML = sidebarHeader + marked.parse(markdownBody) + relatedHTML;
+
+        updateMasterySidebarUI(filePath);
                 
     } catch (err) {
         sidebarContent.innerHTML = `<div class="p-4 border border-red-900/50 bg-red-900/10 rounded"><p class="text-red-400 font-bold">Error loading content</p><p class="text-xs text-red-300/60 mt-1">${err.message}</p></div>`;
@@ -330,6 +341,53 @@ function toggleFilterDrawer() {
         container.style.pointerEvents = 'none';
         container.style.visibility = 'hidden'; // Complete removal from the "touch" layer
     }
+}
+
+// --- MASTERY SYSTEM ---
+
+function getMasteredList() {
+    return JSON.parse(localStorage.getItem('gp-mastery-list') || "[]");
+}
+
+window.toggleMastery = (filePath) => {
+    let mastered = getMasteredList();
+    const index = mastered.indexOf(filePath);
+
+    if (index > -1) {
+        mastered.splice(index, 1); // Remove if exists
+    } else {
+        mastered.push(filePath); // Add if new
+    }
+
+    localStorage.setItem('gp-mastery-list', JSON.stringify(mastered));
+    
+    // Update both UI components immediately
+    updateMasterySidebarUI(filePath);
+    updateMasteryMapUI();
+};
+
+function updateMasterySidebarUI(filePath) {
+    const btn = document.getElementById('mastery-btn');
+    const label = document.getElementById('mastery-label');
+    const isMastered = getMasteredList().includes(filePath);
+
+    if (btn) {
+        if (isMastered) {
+            btn.classList.add('active');
+            label.innerText = 'Mastered';
+        } else {
+            btn.classList.remove('active');
+            label.innerText = 'Mastered?';
+        }
+    }
+}
+
+function updateMasteryMapUI() {
+    const mastered = getMasteredList();
+    d3.selectAll('.pin').each(function(d) {
+        const isMastered = mastered.includes(d.file);
+        d3.select(this).classed('mastered', isMastered);
+    });
 }
 
 // 8. START

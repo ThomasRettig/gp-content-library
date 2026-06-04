@@ -201,3 +201,24 @@ body, html {
 .filter-pill:active {
     transform: scale(0.95);
 }
+
+/* The Mastery Pulse Effect */
+@keyframes mastery-glow {
+    0% { filter: drop-shadow(0 0 2px #fbbf24); }
+    50% { filter: drop-shadow(0 0 8px #fbbf24); }
+    100% { filter: drop-shadow(0 0 2px #fbbf24); }
+}
+
+.pin.mastered {
+    fill: #fbbf24 !important; /* Gold color */
+    stroke: #fff;
+    stroke-width: 1px;
+    animation: mastery-glow 3s infinite ease-in-out;
+}
+
+/* Sidebar Toggle Button */
+#mastery-btn.active {
+    background-color: #fbbf24;
+    color: #000;
+    border-color: #fbbf24;
+}
