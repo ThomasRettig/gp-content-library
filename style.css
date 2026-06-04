@@ -181,6 +181,7 @@ body, html {
 }
 
 .filter-pill {
+    -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
     /* Force GPU acceleration for smoother filter transitions in Safari */
     -webkit-transform: translateZ(0);
