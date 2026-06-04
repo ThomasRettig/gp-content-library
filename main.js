@@ -66,9 +66,20 @@ function renderMap(worldData, points) {
 
     const path = d3.geoPath().projection(currentProjection);
 
-    // Zoom behavior setup
+    // --- NEW: DEFINE BOUNDARIES ---
+    // We get the projected coordinates of the top-left and bottom-right of the world
+    // then add a small buffer (e.g., 50px) so the map doesn't feel "sticky" at the edges.
+    const worldBounds = d3.geoPath().projection(currentProjection).bounds(worldData);
+    const buffer = 0; 
+    
     const zoom = d3.zoom()
         .scaleExtent([1, 8])
+        // RESTRICT PANNING AREA:
+        // [[x0, y0], [x1, y1]]
+        .translateExtent([
+            [worldBounds[0][0] - buffer, worldBounds[0][1] - buffer], 
+            [worldBounds[1][0] + buffer, worldBounds[1][1] + buffer]
+        ])
         .filter(event => !event.button && event.type !== 'dblclick')
         .on('zoom', (event) => {
             g.attr('transform', event.transform);
