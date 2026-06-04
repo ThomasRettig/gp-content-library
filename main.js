@@ -153,7 +153,7 @@ function resetMap() {
     container.classList.remove('active');
     container.style.pointerEvents = 'none';
     container.style.visibility = 'hidden';
-    
+
     d3.select('#world-map').transition()
         .duration(750)
         .call(d3.zoom().transform, d3.zoomIdentity);
@@ -233,25 +233,43 @@ function setupFilters(points) {
     allThemes.forEach(theme => {
         const color = getThemeColor(theme);
         const btn = document.createElement('button');
+        
         btn.innerText = theme;
         btn.className = "filter-pill px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all duration-300";
-        btn.style.color = color;
-        btn.style.borderColor = color;
-        btn.style.backgroundColor = 'transparent';
-        btn.style.filter = 'saturate(0)'; 
-        btn.style.opacity = '0.5';
-        btn.style.backgroundColor = `${color}11`;
+        
+        // Default "De-selected" State for Safari
+        const setInactiveStyle = (element) => {
+            element.style.borderColor = color;
+            element.style.color = color;
+            element.style.backgroundColor = 'transparent';
+            element.style.filter = 'saturate(0)';
+            element.style.opacity = '0.4';
+        };
+
+        // "Active/Hover" State
+        const setActiveStyle = (element) => {
+            element.style.filter = 'saturate(1)';
+            element.style.opacity = '1';
+            element.style.backgroundColor = `${color}22`; // Slight tinted background
+        };
+
+        setInactiveStyle(btn);
 
         btn.onclick = () => {
             if (activeFilters.has(theme)) {
                 activeFilters.delete(theme);
-                btn.classList.add('opacity-60', 'grayscale');
+                setInactiveStyle(btn);
             } else {
                 activeFilters.add(theme);
-                btn.classList.remove('opacity-60', 'grayscale');
+                setActiveStyle(btn);
             }
             updateMapVisibility();
         };
+
+        // Re-add hover listeners for Safari
+        btn.onmouseenter = () => { if (!activeFilters.has(theme)) setActiveStyle(btn); };
+        btn.onmouseleave = () => { if (!activeFilters.has(theme)) setInactiveStyle(btn); };
+
         filterContainer.appendChild(btn);
     });
 }
@@ -286,10 +304,10 @@ function getRelatedCasesHTML(currentFile, currentThemesStr) {
     const related = allPoints.filter(p => p.file !== currentFile && p.themeArray.some(t => themes.includes(t))).slice(0, 3);
 
     if (related.length === 0) return '';
-    return `<div class="mt-12 pt-8 border-t border-zinc-800"><h3 class="text-zinc-500 text-[10px] uppercase tracking-[0.2em] mb-4">Related Evidence</h3><div class="grid gap-3">
+    return `<div class="mt-12 pt-8 border-t border-zinc-800"><h3 class="text-zinc-500 text-[12px] uppercase tracking-[0.2em] mb-4">Related Evidence</h3><div class="grid gap-3">
         ${related.map(p => `<div onclick="focusOnPinByFile('${p.file}')" class="group cursor-pointer p-3 rounded-lg bg-zinc-900/50 border border-zinc-800 hover:border-zinc-600 transition-all">
             <p class="text-s font-bold text-zinc-300 group-hover:text-blue-400 transition-colors">${p.displayLabel}</p>
-            <p class="text-[12px] text-zinc-500 mt-1">${p.location} • ${p.date}</p>
+            <p class="text-[12px] text-zinc-500">${p.location} • ${p.date}</p>
         </div>`).join('')}</div></div>`;
 }
 

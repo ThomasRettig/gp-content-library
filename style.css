@@ -39,11 +39,6 @@ body, html {
     transition: transform 0.2s, r 0.2s;
 }
 
-.pin:hover {
-    r: 6;
-    transform: scale(1.5);
-}
-
 .map-label {
     fill: #eee;
     text-transform: uppercase;
@@ -153,22 +148,23 @@ body, html {
     scale: 1;
 }
 
-/* Ensure buttons don't wrap weirdly on mobile */
-#filter-container button {
-    white-space: nowrap;
-    width: fit-content;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-}
-
 #filter-container {
     max-height: 70vh; /* Don't go off-screen */
     overflow-y: auto;
     padding: 10px;
     scrollbar-width: none; /* Firefox */
+    box-sizing: border-box;
 }
 
 #filter-container::-webkit-scrollbar {
     display: none; /* Chrome/Safari */
+}
+
+/* Ensure buttons don't wrap weirdly on mobile */
+#filter-container button {
+    white-space: nowrap;
+    width: fit-content;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
 @media (max-width: 768px) {
@@ -186,7 +182,15 @@ body, html {
 
 .filter-pill {
     backdrop-filter: blur(8px);
+    /* Force GPU acceleration for smoother filter transitions in Safari */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* Ensure text renders sharply */
+    -webkit-font-smoothing: antialiased;
+    display: inline-block;
 }
+
+
 
 .filter-pill:hover {
     opacity: 1 !important;
