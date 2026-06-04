@@ -317,8 +317,8 @@ function getRelatedCasesHTML(currentFile, currentThemesStr) {
     if (related.length === 0) return '';
     return `<div class="mt-12 pt-8 border-t border-zinc-800"><h3 class="text-zinc-500 text-[12px] uppercase tracking-[0.2em] mb-4">Related Evidence</h3><div class="grid gap-3">
         ${related.map(p => `<div onclick="focusOnPinByFile('${p.file}')" class="group cursor-pointer p-3 rounded-lg bg-zinc-900/50 border border-zinc-800 hover:border-zinc-600 transition-all">
-            <p class="text-s font-bold text-zinc-300 group-hover:text-blue-400 transition-colors">${p.displayLabel}</p>
-            <p class="text-[12px] text-zinc-500">${p.location} • ${p.date}</p>
+            <p class="text-s font-bold text-zinc-300 group-hover:text-blue-400 transition-colors m-0">${p.displayLabel}</p>
+            <p class="text-[12px] text-zinc-500 m-0">${p.location} • ${p.date}</p>
         </div>`).join('')}</div></div>`;
 }
 
