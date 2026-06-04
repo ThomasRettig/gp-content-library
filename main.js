@@ -58,27 +58,38 @@ function renderMap(worldData, points) {
     const g = svg.append('g').attr('id', 'world-map-group'); 
 
     currentProjection = d3.geoMercator();
+    
+    // 1. Initial fit to get a baseline
     currentProjection.fitSize([width, height], worldData);
 
-    // Zoom boost to fill the screen (Edge-to-Edge)
-    const fillScale = currentProjection.scale() * 1.3;
-    currentProjection.scale(fillScale).center([0, 20]); 
+    // 2. COVER LOGIC:
+    // We calculate the scale needed to fill the width vs the height.
+    const bounds = d3.geoPath(currentProjection).bounds(worldData);
+    const worldW = bounds[1][0] - bounds[0][0];
+    const worldH = bounds[1][1] - bounds[0][1];
+    
+    const widthRatio = width / worldW;
+    const heightRatio = height / worldH;
+    
+    // 3. Scale up to the LARGER of the two ratios to ensure no black bars
+    // We add an extra 1.2x multiplier for that "immersion" zoom you liked.
+    const fillScale = currentProjection.scale() * Math.max(widthRatio, heightRatio) * 1.2;
+    currentProjection.scale(fillScale);
+
+    // 4. Centering slightly North (20°) to avoid a sea of empty space at the bottom
+    currentProjection.center([0, 20]);
 
     const path = d3.geoPath().projection(currentProjection);
 
-    // --- NEW: DEFINE BOUNDARIES ---
-    // We get the projected coordinates of the top-left and bottom-right of the world
-    // then add a small buffer (e.g., 50px) so the map doesn't feel "sticky" at the edges.
+    // Calculate the physical boundaries of the projected landmasses
     const worldBounds = d3.geoPath().projection(currentProjection).bounds(worldData);
-    const buffer = 0; 
-    
+
     const zoom = d3.zoom()
         .scaleExtent([1, 8])
-        // RESTRICT PANNING AREA:
-        // [[x0, y0], [x1, y1]]
+        // NEW: Restrict the camera movement to the world bounds
         .translateExtent([
-            [worldBounds[0][0] - buffer, worldBounds[0][1] - buffer], 
-            [worldBounds[1][0] + buffer, worldBounds[1][1] + buffer]
+            [worldBounds[0][0], worldBounds[0][1]], 
+            [worldBounds[1][0], worldBounds[1][1]]
         ])
         .filter(event => !event.button && event.type !== 'dblclick')
         .on('zoom', (event) => {
