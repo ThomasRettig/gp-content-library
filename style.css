@@ -44,7 +44,7 @@ body, html {
     text-transform: uppercase;
     letter-spacing: 0.2em;
     pointer-events: none;
-    transition: font-size 0.2s, x 0.2s;
+    transition: font-size 0s, x 0.2s;
     font-size: 10px;
 }
 
@@ -212,8 +212,8 @@ body, html {
 .pin.mastered {
     fill: #fbbf24 !important; /* Gold color */
     stroke: #fff;
-    stroke-width: 1px;
-    animation: mastery-glow 3s infinite ease-in-out;
+    stroke-width: 0.3px;
+    animation: mastery-glow 2.5s infinite ease-in-out;
 }
 
 /* Sidebar Toggle Button */
