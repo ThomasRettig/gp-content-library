@@ -3,10 +3,20 @@ const sidebar = document.getElementById('sidebar');
 const sidebarContent = document.getElementById('sidebar-content');
 const filterContainer = document.getElementById('filter-container');
 const activeBadge = document.getElementById('active-count');
+const mapContainer = document.getElementById('map-container');
 
 let allPoints = [];
 let activeFilters = new Set();
-let currentProjection; 
+let currentProjection;
+let svg, g, zoomBehavior; // Cache D3 elements
+let themeColorsCache = new Map(); // Cache theme colors
+let filterButtonsCache = new Map(); // Cache filter button references
+let pinGroupsSelection; // Cache pin groups selection
+
+// Pre-compute constants
+const ZOOM_CONFIG = { minScale: 1, maxScale: 8, fitMultiplier: 1.2 };
+const TRANSITION_DURATION = 400;
+const HOVER_TRANSITION_DURATION = 200;
 
 // 2. INITIALIZATION
 async function init() {
@@ -43,19 +53,21 @@ async function init() {
 
 // 3. MAP RENDERING
 function renderMap(worldData, points) {
-    const container = document.getElementById('map-container');
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const width = mapContainer.clientWidth;
+    const height = mapContainer.clientHeight;
 
-    d3.select('#map-container').html('');
+    // Clear container efficiently
+    while (mapContainer.firstChild) {
+        mapContainer.removeChild(mapContainer.firstChild);
+    }
 
-    const svg = d3.select('#map-container').append('svg')
+    svg = d3.select(mapContainer).append('svg')
         .attr('width', width)
         .attr('height', height)
         .attr('id', 'world-map');
 
     // Create a single group with a stable ID for zooming
-    const g = svg.append('g').attr('id', 'world-map-group'); 
+    g = svg.append('g').attr('id', 'world-map-group'); 
 
     currentProjection = d3.geoMercator();
 
@@ -73,7 +85,7 @@ function renderMap(worldData, points) {
     
     // 3. Scale up to the LARGER of the two ratios to ensure no black bars
     // We add an extra 1.2x multiplier for that "immersion" zoom you liked.
-    const fillScale = currentProjection.scale() * Math.max(widthRatio, heightRatio) * 1.2;
+    const fillScale = currentProjection.scale() * Math.max(widthRatio, heightRatio) * ZOOM_CONFIG.fitMultiplier;
     currentProjection.scale(fillScale);
 
     // 4. Centering slightly North (20°) to avoid a sea of empty space at the bottom
@@ -84,24 +96,17 @@ function renderMap(worldData, points) {
     // Calculate the physical boundaries of the projected landmasses
     const worldBounds = d3.geoPath().projection(currentProjection).bounds(worldData);
 
-    const zoom = d3.zoom()
-        .scaleExtent([1, 8])
+    zoomBehavior = d3.zoom()
+        .scaleExtent([ZOOM_CONFIG.minScale, ZOOM_CONFIG.maxScale])
         // NEW: Restrict the camera movement to the world bounds
         .translateExtent([
             [worldBounds[0][0], worldBounds[0][1]], 
             [worldBounds[1][0], worldBounds[1][1]]
         ])
         .filter(event => !event.button && event.type !== 'dblclick')
-        .on('zoom', (event) => {
-            g.attr('transform', event.transform);
-            const k = event.transform.k;
-            d3.selectAll('.pin').attr('r', 5 / k);
-            d3.selectAll('.map-label')
-                .style('font-size', (10 / k) + 'px')
-                .attr('x', 15 / k);
-        });
+        .on('zoom', handleZoom);
 
-    svg.call(zoom);
+    svg.call(zoomBehavior);
 
     // Draw Land
     g.append('g')
@@ -113,8 +118,8 @@ function renderMap(worldData, points) {
         .attr('class', 'land')
         .on('click', resetMap);
 
-    // Draw Pins
-    const pinGroups = g.append('g')
+    // Draw Pins - cache the selection
+    pinGroupsSelection = g.append('g')
         .selectAll('g')
         .data(points)
         .enter()
@@ -130,36 +135,51 @@ function renderMap(worldData, points) {
             openSidebar(d.file);
         });
 
-    pinGroups.append('circle')
+    pinGroupsSelection.append('circle')
         .attr('r', 5)
         .attr('class', d => {
             const isMastered = getMasteredList().includes(d.file);
             return isMastered ? 'pin mastered' : 'pin';
         })
-        .on('mouseenter', function() {
-            const k = d3.zoomTransform(d3.select('#world-map').node()).k;
-            d3.select(this)
-                .transition('hover').duration(200)
-                .attr('r', 8 / k); 
-        })
-        .on('mouseleave', function() {
-            const k = d3.zoomTransform(d3.select('#world-map').node()).k;
-            d3.select(this)
-                .transition('hover').duration(200)
-                .attr('r', 5 / k);
-        });
+        .on('mouseenter', handlePinHoverEnter)
+        .on('mouseleave', handlePinHoverLeave);
 
-    pinGroups.append('text')
+    pinGroupsSelection.append('text')
         .attr('x', 10).attr('y', 4)
         .text(d => d.displayLabel)
         .attr('class', 'map-label');
 }
 
+// Extracted zoom handler for performance
+function handleZoom(event) {
+    g.attr('transform', event.transform);
+    const k = event.transform.k;
+    const invK = 1 / k;
+    d3.selectAll('.pin').attr('r', 5 * invK);
+    d3.selectAll('.map-label')
+        .style('font-size', (10 * invK) + 'px')
+        .attr('x', 15 * invK);
+}
+
+// Extracted pin hover handlers for performance
+function handlePinHoverEnter(event, d) {
+    const k = d3.zoomTransform(svg.node()).k;
+    d3.select(this)
+        .transition('hover').duration(HOVER_TRANSITION_DURATION)
+        .attr('r', 8 / k); 
+}
+
+function handlePinHoverLeave(event, d) {
+    const k = d3.zoomTransform(svg.node()).k;
+    d3.select(this)
+        .transition('hover').duration(HOVER_TRANSITION_DURATION)
+        .attr('r', 5 / k);
+}
+
 // 4. NAVIGATION & CAMERA
 function focusOnPin(d) {
-    const container = document.getElementById('map-container');
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const width = mapContainer.clientWidth;
+    const height = mapContainer.clientHeight;
     
     const coords = currentProjection([d.lng, d.lat]);
     const k = 4;
@@ -167,21 +187,20 @@ function focusOnPin(d) {
     const translateX = (width / 4) - k * coords[0]; 
     const translateY = (height / 2) - k * coords[1];
 
-    d3.select('#world-map').transition()
+    svg.transition()
         .duration(750)
-        .call(d3.zoom().transform, d3.zoomIdentity.translate(translateX, translateY).scale(k));
+        .call(zoomBehavior.transform, d3.zoomIdentity.translate(translateX, translateY).scale(k));
 }
 
 function resetMap() {
     closeSidebar();
-    const container = document.getElementById('filter-container');
-    container.classList.remove('active');
-    container.style.pointerEvents = 'none';
-    container.style.visibility = 'hidden';
+    filterContainer.classList.remove('active');
+    filterContainer.style.pointerEvents = 'none';
+    filterContainer.style.visibility = 'hidden';
 
-    d3.select('#world-map').transition()
+    svg.transition()
         .duration(750)
-        .call(d3.zoom().transform, d3.zoomIdentity);
+        .call(zoomBehavior.transform, d3.zoomIdentity);
 }
 
 // 5. SIDEBAR & MARKDOWN
@@ -326,8 +345,10 @@ function setupFilters(points) {
 }
 
 function updateMapVisibility() {
-    d3.selectAll('.pin-group')
-        .transition().duration(400)
+    if (!pinGroupsSelection) return;
+    
+    pinGroupsSelection
+        .transition().duration(TRANSITION_DURATION)
         .style('opacity', d => {
             if (activeFilters.size === 0) return 1;
             return d.themeArray.some(t => activeFilters.has(t)) ? 1 : 0.15;
@@ -335,7 +356,7 @@ function updateMapVisibility() {
         .style('pointer-events', d => (activeFilters.size === 0 || d.themeArray.some(t => activeFilters.has(t))) ? 'auto' : 'none');
 
     if (activeFilters.size > 0) {
-        activeBadge.innerText = activeFilters.size;
+        activeBadge.textContent = activeFilters.size;
         activeBadge.classList.remove('hidden');
     } else {
         activeBadge.classList.add('hidden');
@@ -344,9 +365,18 @@ function updateMapVisibility() {
 
 // 7. HELPERS
 function getThemeColor(str) {
+    // Check cache first
+    if (themeColorsCache.has(str)) {
+        return themeColorsCache.get(str);
+    }
+    
     let hash = 0;
     for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    return `hsl(${Math.abs(hash) % 360}, 65%, 65%)`;
+    const color = `hsl(${Math.abs(hash) % 360}, 65%, 65%)`;
+    
+    // Cache the result
+    themeColorsCache.set(str, color);
+    return color;
 }
 
 function getRelatedCasesHTML(currentFile, currentThemesStr) {
@@ -370,16 +400,15 @@ window.focusOnPinByFile = (fileName) => {
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') resetMap(); });
 
 function toggleFilterDrawer() {
-    const container = document.getElementById('filter-container');
     filterContainer.classList.toggle('active');
 
     // Explicitly toggle pointer events based on the active class
-    if (container.classList.contains('active')) {
-        container.style.pointerEvents = 'auto';
-        container.style.visibility = 'visible';
+    if (filterContainer.classList.contains('active')) {
+        filterContainer.style.pointerEvents = 'auto';
+        filterContainer.style.visibility = 'visible';
     } else {
-        container.style.pointerEvents = 'none';
-        container.style.visibility = 'hidden'; // Complete removal from the "touch" layer
+        filterContainer.style.pointerEvents = 'none';
+        filterContainer.style.visibility = 'hidden';
     }
 }
 
@@ -437,5 +466,5 @@ function updateMasteryMapUI() {
     });
 }
 
-// 8. START
+// 8. START - Initialize application
 init();
